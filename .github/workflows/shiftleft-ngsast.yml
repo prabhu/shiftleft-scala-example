@@ -15,7 +15,7 @@ jobs:
       uses: actions/setup-java@v1.3.0
       with:
         java-version: 1.8
-    - name: SBT action test
+    - name: SBT package
       id: sbt
       uses: lokkju/github-action-sbt@master
       with:
