@@ -1,0 +1,38 @@
+# This workflow integrates ShiftLeft NextGen Static Analysis with GitHub
+# Visit https://docs.shiftleft.io for help
+name: Analyze with ShiftLeft NextGen Static Analysis
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  NextGen-SAST-Build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Java JDK
+      uses: actions/setup-java@v1.3.0
+      with:
+        java-version: 1.8
+    - name: SBT action test
+      id: sbt
+      uses: lokkju/github-action-sbt@master
+      with:
+        commands: package
+    - name: Download ShiftLeft cli
+      run: |
+        curl https://cdn.shiftleft.io/download/sl > ${GITHUB_WORKSPACE}/sl && chmod a+rx ${GITHUB_WORKSPACE}/sl
+
+    - name: Analyze with NextGen SAST
+      run: ${GITHUB_WORKSPACE}/sl analyze --no-diagnostic --force --app ShiftLeftScalaExample --tag branch=${GITHUB_REF} --java --cpg target/scala-2.11/shiftleft-scala-example_2.11-1.0-SNAPSHOT.jar
+      env:
+        SHIFTLEFT_ORG_ID: ${{ secrets.SHIFTLEFT_ORG_ID }}
+        SHIFTLEFT_ACCESS_TOKEN: ${{ secrets.SHIFTLEFT_ACCESS_TOKEN }}
+    - name: Create status check
+      run: |
+        URL="https://www.shiftleft.io/violationlist/ShiftLeftScalaExample?apps=ShiftLeftScalaExample&isApp=1"
+        GH_CHECK_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/check-runs"
+        curl -XPOST $GH_CHECK_URL -H "Authorization: Token ${GITHUB_TOKEN}" -H "accept: application/vnd.github.antiope-preview+json" -H "Content-Type: application/json" -d "{\"name\": \"ShiftLeft Inspect\", \"head_sha\": \"${GITHUB_REF}\", \"external_id\": \"ShiftLeftScalaExample\", \"details_url\": \"${URL}\", \"status\": \"completed\", \"conclusion\": \"action_required\", \"output\": {\"title\": \"ShiftLeft Inspect Findings\", \"summary\": \"Visit ${URL} for the findings\"}}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
