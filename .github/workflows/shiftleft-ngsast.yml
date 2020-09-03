@@ -33,6 +33,8 @@ jobs:
       run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
       id: extract_branch
     - name: NextGen Static Analysis
-      run: ${GITHUB_WORKSPACE}/sl analyze --wait --app ShiftLeftScalaExample --tag branch=${{ github.head_ref || steps.extract_branch.outputs.branch }} --java --cpg target/scala-2.11/shiftleft-scala-example_2.11-1.0-SNAPSHOT.jar
+      run: |
+        jar cvf app.jar -C target/scala-2.11/ .
+        ${GITHUB_WORKSPACE}/sl analyze --wait --app $(basename $(pwd)) --tag branch=${{ github.head_ref || steps.extract_branch.outputs.branch }} --java --cpg app.jar
       env:
         SHIFTLEFT_ACCESS_TOKEN: ${{ secrets.SHIFTLEFT_ACCESS_TOKEN }}
